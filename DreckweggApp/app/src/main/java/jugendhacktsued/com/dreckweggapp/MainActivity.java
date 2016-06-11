@@ -2,7 +2,9 @@ package jugendhacktsued.com.dreckweggapp;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -14,6 +16,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.ImageButton;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import org.json.JSONObject;
 
@@ -26,13 +29,18 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.SocketTimeoutException;
 import java.net.URL;
+import java.security.Provider;
 
 public class MainActivity extends AppCompatActivity {
 
+
+    final static String serviceCode = "";
+    final static String URLofServer = "http://10.0.15.91:80/georeport/v2/requests.json";
     double lat = 1;
     double lon = 1;
     TextView debugText;
     ImageButton dreckButton;
+    String provider; //provider for Location Data
 
     LocationManager locationManager;
 
@@ -42,48 +50,20 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        debugText = (TextView)findViewById(R.id.debug);
         dreckButton = (ImageButton)findViewById(R.id.dreck_button);
 
-        //get location for the first time
+        //get location manager
         locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
 
+        //get the best provider
+        Criteria criteria = new Criteria();
+        provider = locationManager.getBestProvider(criteria, true);
+
         Location loc;
 
+        //get coordinates for the first time
         try {
-            loc = this.locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-            Log.d("gps", "got locv" + loc);
-            Log.i("Longitude", " " + loc.getLongitude());
-        }
-        catch(SecurityException error) {
-            Log.d("gps", "problem with gps");
-        }
-        catch(IllegalArgumentException error){
-            Log.d("gps", "illegal");
-        }
-        catch(Exception error){
-            Log.d("gps", "what" + error);
-        }
-
-    }
-
-    public void dreckButton(View view) {
-
-        //changes the button to button mit leiste and provides feedback
-        dreckButton.setImageResource(R.drawable.dreck_button_mit_leiste);
-        //changes the color back
-        final Handler handler = new Handler();
-        handler.postDelayed(new Runnable() {
-            @Override
-            public void run(){
-                dreckButton.setImageResource(R.drawable.dreck_button);
-            }
-        }, 1000);
-
-        //get location and set lat and lon
-        Location loc;
-        try {
-            loc = this.locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+            loc = this.locationManager.getLastKnownLocation(provider);
             Log.d("gps", "got locv" + loc);
             Log.i("Longitude", " " + loc.getLongitude());
             lat = loc.getLatitude();
@@ -99,9 +79,70 @@ public class MainActivity extends AppCompatActivity {
             Log.d("gps", "what" + error);
         }
 
-        String json = createJson(lat, lon, 1);
+    }
 
-        debugText.setText(json);
+    //opens the map when map is clicked
+    public void onMap(View view){
+        Intent intent = new Intent(this, MapView.class);
+        intent.putExtra("lat", lat);
+        intent.putExtra("lon", lon);
+        startActivity(intent);
+    }
+
+    public void dreckButton(View view) {
+
+        //changes the button to button mit leiste and provides feedback
+        dreckButton.setImageResource(R.drawable.dreck_button_mit_leiste);
+        //changes the color back
+        final Handler handler = new Handler();
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                dreckButton.setImageResource(R.drawable.dreck_button);
+            }
+        }, 1000);
+
+        //get location and set lat and lon
+        //get coordinates
+        try {
+            locationManager.requestSingleUpdate(provider, new LocationListener() {
+                @Override
+                public void onLocationChanged(Location location) {
+                    lat = location.getLatitude();
+                    lon = location.getLongitude();
+                }
+
+                @Override
+                public void onProviderDisabled(String provider) {
+
+                }
+
+                @Override
+                public void onStatusChanged(String provider, int status, Bundle extras) {
+
+                }
+
+                @Override
+                public void onProviderEnabled(String provider) {
+
+                }
+            }, null);
+        }
+        catch(SecurityException error){
+            Log.d("Permissions", "most likely no permissions");
+        }
+
+        //this shows a toast with the lon at lat data
+        Context context = getApplicationContext();
+        CharSequence text = "Lat: " + lat + " Long: " + lon;
+        int duration = Toast.LENGTH_SHORT;
+
+        Toast toast = Toast.makeText(context, text, duration);
+        toast.show();
+
+        //create and send json
+        String json = createJson(lat, lon, 1);
+        postJSON(json);
 
     }
 
@@ -156,9 +197,10 @@ public class MainActivity extends AppCompatActivity {
         String json="";
         try {
             JSONObject jsonObject = new JSONObject();
+            jsonObject.accumulate("service_code", serviceCode);
             jsonObject.accumulate("lat", lat);
-            jsonObject.accumulate("lon", lon);
-            jsonObject.accumulate("dreckgrad", dreckgrad);
+            jsonObject.accumulate("long", lon);
+            //jsonObject.accumulate("dreckgrad", dreckgrad);
 
             // 4. convert JSONObject to JSON to String
             json = jsonObject.toString();
@@ -172,10 +214,10 @@ public class MainActivity extends AppCompatActivity {
     private void postJSON(String json){
         HttpURLConnection client = null;
         try {
-            URL url = new URL("http://10.0.15.162"); //need to insert ip address of server
+            URL url = new URL(URLofServer); //need to insert ip address of server
             client = (HttpURLConnection) url.openConnection();
             client.setRequestMethod("POST");
-            client.setRequestProperty("Content-Type", "text/plain; charset=utf-8");
+            client.setRequestProperty("Content-Type", "application/json; charset=utf-8");
             client.setDoOutput(true);
 
             //writes json to the stream
@@ -184,16 +226,21 @@ public class MainActivity extends AppCompatActivity {
             outputPost.write(jsonBytes);
             outputPost.flush(); //hopefully it will not stop before being finished
             outputPost.close();
+
+            Log.d("Post", "posted json");
         }
 
         catch(MalformedURLException error) {
             //Handles an incorrectly entered URL
+            Log.d("Post", "incorrect URL" + error);
         }
         catch(SocketTimeoutException error) {
             //Handles URL access timeout.
+            Log.d("Post", "access timeout" + error);
         }
         catch (IOException error) {
             //Handles input and output errors
+            Log.d("Post", "ioerror" + error);
         }
 
         //close the connection again
