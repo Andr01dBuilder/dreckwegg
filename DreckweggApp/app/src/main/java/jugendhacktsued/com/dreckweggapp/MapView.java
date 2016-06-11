@@ -22,8 +22,9 @@ public class MapView extends AppCompatActivity {
         webview.setWebViewClient(new WebViewClient());
         //No need to worry about security
         webview.getSettings().setJavaScriptEnabled(true);
-        webview.loadUrl("http://www.opentouchmap.org/?lat=" + lat + "&lon=" + lon + "&zoom=15");
 
+        //webview.loadUrl("http://www.opentouchmap.org/?lat=" + lat + "&lon=" + lon + "&zoom=15");
+        webview.loadUrl("http://10.0.15.91/dreckwegg/map");
 
 
         //TODO: what to do here??

@@ -18,6 +18,18 @@ import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import org.apache.http.HttpResponse;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.message.BasicNameValuePair;
+
+import org.apache.http.util.EntityUtils;
 import org.json.JSONObject;
 
 import java.io.BufferedInputStream;
@@ -29,13 +41,15 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.SocketTimeoutException;
 import java.net.URL;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.security.Provider;
 
 public class MainActivity extends AppCompatActivity {
 
 
-    final static String serviceCode = "";
-    final static String URLofServer = "http://10.0.15.91:80/georeport/v2/requests.json";
+    final static String serviceCode = "1234";
+    final static String URLofServer = "http://10.0.15.91:80/dreckwegg/georeport/v2/requests.json";
     double lat = 1;
     double lon = 1;
     TextView debugText;
@@ -141,73 +155,38 @@ public class MainActivity extends AppCompatActivity {
         toast.show();
 
         //create and send json
-        String json = createJson(lat, lon, 1);
-        new PostingJSON().execute(json);
+        String urlEnc = createURLEnc(lat, lon, 1);
+        new PostingJSON().execute(urlEnc);
 
     }
 
 
     //from this part on its about http and networks
     //creates a string that is correspondent to a json object
-    private String createJson(double lat, double lon, int dreckgrad){
-        String json="";
+    private String createURLEnc(double lat, double lon, int dreckgrad){
+        String urlEnc="";
         try {
-            JSONObject jsonObject = new JSONObject();
+            urlEnc += "service_code=" + serviceCode + "&lat=" + lat + "&long=" + lon + "&email=blubb@wuff.de";
+
+            /*
             jsonObject.accumulate("service_code", serviceCode);
             jsonObject.accumulate("lat", lat);
             jsonObject.accumulate("long", lon);
+            jsonObject.accumulate("email", "blubb@wuff.de");
+
             //jsonObject.accumulate("dreckgrad", dreckgrad);
 
             // 4. convert JSONObject to JSON to String
             json = jsonObject.toString();
+            */
+            Log.d("Json", urlEnc);
         }
         catch (Exception e) {
             Log.d("InputStream", e.getLocalizedMessage());
         }
-        return json;
+        return urlEnc;
     }
 
-    private void postJSON(String json){
-        HttpURLConnection client = null;
-        try {
-            URL url = new URL(URLofServer); //need to insert ip address of server
-            client = (HttpURLConnection) url.openConnection();
-            client.setRequestMethod("POST");
-            client.setRequestProperty("Content-Type", "application/json; charset=utf-8");
-            client.setDoOutput(true);
-
-            //writes json to the stream
-            OutputStream outputPost = new BufferedOutputStream(client.getOutputStream());
-            byte[] jsonBytes = json.getBytes("UTF-8");
-            outputPost.write(jsonBytes);
-            outputPost.flush(); //hopefully it will not stop before being finished
-            outputPost.close();
-
-            Log.d("Post", "posted json");
-        }
-
-        catch(MalformedURLException error) {
-            //Handles an incorrectly entered URL
-            Log.d("Post", "incorrect URL" + error);
-        }
-        catch(SocketTimeoutException error) {
-            //Handles URL access timeout.
-            Log.d("Post", "access timeout" + error);
-        }
-        catch (IOException error) {
-            //Handles input and output errors
-            Log.d("Post", "ioerror" + error);
-        }
-        catch(Exception error){
-            Log.d("Post", "some weird error: " + error);
-        }
-
-        //close the connection again
-        finally {
-            if(client != null) // Make sure the connection is not null.
-                client.disconnect();
-        }
-    }
 
     //this is the Async Task to do the posting of the json
     class PostingJSON extends AsyncTask<String, Void, Void> {
@@ -215,20 +194,38 @@ public class MainActivity extends AppCompatActivity {
         private Exception exception;
 
         protected Void doInBackground(String... strings) {
+
+            HttpClient httpclient = new DefaultHttpClient();
+            HttpPost httppost = new HttpPost(URLofServer);
+            try {
+                Log.d("Post-json", strings[0]);
+                httppost.setEntity(new StringEntity(strings[0]));
+                Log.d("Post-json", strings[0]);
+                //httppost.setHeader("Accept", "application/json");
+                httppost.setHeader("Content-Type", "application/x-www-form-urlencoded");
+                HttpResponse response = httpclient.execute(httppost);
+                Log.d("Post", "Response: " + EntityUtils.toString(response.getEntity()));
+            }
+            catch(Exception error){
+                Log.d("Post", "Error: " + error);
+            }
+
+            /*
             HttpURLConnection client = null;
             try {
                 URL url = new URL(URLofServer); //need to insert ip address of server
                 client = (HttpURLConnection) url.openConnection();
                 client.setRequestMethod("POST");
-                client.setRequestProperty("Content-Type", "application/json; charset=utf-8");
+                client.setRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=utf-8");
                 client.setDoOutput(true);
 
                 //writes json to the stream
                 OutputStream outputPost = new BufferedOutputStream(client.getOutputStream());
                 byte[] jsonBytes = strings[0].getBytes("UTF-8");
                 outputPost.write(jsonBytes);
-                outputPost.flush(); //hopefully it will not stop before being finished
-                outputPost.close();
+                //outputPost.flush(); //hopefully it will not stop before being finished
+                //outputPost.close();
+
 
                 Log.d("Post", "posted json");
 
@@ -252,11 +249,10 @@ public class MainActivity extends AppCompatActivity {
             }
             return null;
         }
-
-        protected Void onPostExecute() {
-            Log.d("Post", "After post");
+        */
             return null;
         }
+
     }
 
 
