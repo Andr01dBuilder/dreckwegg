@@ -7,10 +7,12 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.AsyncTask;
+import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.widget.ImageButton;
 import android.widget.TextView;
 
 import org.json.JSONObject;
@@ -30,7 +32,8 @@ public class MainActivity extends AppCompatActivity {
     double lat = 1;
     double lon = 1;
     TextView debugText;
-    Location locationWhole;  //location is valid in whole class
+    ImageButton dreckButton;
+
     LocationManager locationManager;
 
 
@@ -40,7 +43,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         debugText = (TextView)findViewById(R.id.debug);
-
+        dreckButton = (ImageButton)findViewById(R.id.dreck_button);
 
         //get location for the first time
         locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
@@ -65,6 +68,17 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void dreckButton(View view) {
+
+        //changes the button to button mit leiste and provides feedback
+        dreckButton.setImageResource(R.drawable.dreck_button_mit_leiste);
+        //changes the color back
+        final Handler handler = new Handler();
+        handler.postDelayed(new Runnable() {
+            @Override
+            public void run(){
+                dreckButton.setImageResource(R.drawable.dreck_button);
+            }
+        }, 1000);
 
         //get location and set lat and lon
         Location loc;
