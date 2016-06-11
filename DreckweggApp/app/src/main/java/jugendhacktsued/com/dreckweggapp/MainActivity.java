@@ -27,9 +27,12 @@ import java.net.URL;
 
 public class MainActivity extends AppCompatActivity {
 
-    private double lat = 1;
-    private double lon = 1;
-    public TextView debugText;
+    double lat = 1;
+    double lon = 1;
+    TextView debugText;
+    Location locationWhole;  //location is valid in whole class
+    LocationManager locationManager;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -37,18 +40,61 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         debugText = (TextView)findViewById(R.id.debug);
+
+
+        //get location for the first time
+        locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
+
+        Location loc;
+
+        try {
+            loc = this.locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+            Log.d("gps", "got locv" + loc);
+            Log.i("Longitude", " " + loc.getLongitude());
+        }
+        catch(SecurityException error) {
+            Log.d("gps", "problem with gps");
+        }
+        catch(IllegalArgumentException error){
+            Log.d("gps", "illegal");
+        }
+        catch(Exception error){
+            Log.d("gps", "what" + error);
+        }
+
     }
 
     public void dreckButton(View view) {
-        getLocation();
 
+        //get location and set lat and lon
+        Location loc;
+        try {
+            loc = this.locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+            Log.d("gps", "got locv" + loc);
+            Log.i("Longitude", " " + loc.getLongitude());
+            lat = loc.getLatitude();
+            lon = loc.getLongitude();
+        }
+        catch(SecurityException error) {
+            Log.d("gps", "problem with gps");
+        }
+        catch(IllegalArgumentException error){
+            Log.d("gps", "illegal");
+        }
+        catch(Exception error){
+            Log.d("gps", "what" + error);
+        }
+
+        String json = createJson(lat, lon, 1);
+
+        debugText.setText(json);
 
     }
 
     //for getting the location
     //from https://developer.android.com/guide/topics/location/strategies.html
+    /* the following code drains the batteries
     public void getLocation() {
-
         //using https://developer.android.com/guide/topics/location/strategies.html
         LocationManager locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
 
@@ -56,35 +102,39 @@ public class MainActivity extends AppCompatActivity {
         LocationListener locationListener = new LocationListener() {
             public void onLocationChanged(Location location) {
                 // Called when a new location is found by the network location provider.
+                Log.i("coordinates", location.getLatitude() + " " + location.getLongitude());
+                locationWhole = location;
                 useCoordinates(location);
             }
 
             public void onStatusChanged(String provider, int status, Bundle extras) {
+                Log.d("location", "statuschanged");
             }
 
             public void onProviderEnabled(String provider) {
+                Log.d("location", "providerenabled");
             }
 
             public void onProviderDisabled(String provider) {
+                Log.d("location", "providerdisabled");
             }
         };
 
         // Register the listener with the Location Manager to receive location updates
-        try {
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, locationListener);
-        }
-        catch(SecurityException error){
-
-        }
-
+        try
+        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, locationListener);
     }
 
     //uses location and puts coordinates
     private void useCoordinates(Location location){
+        debugText.setText("Wuff1");
         lat = location.getLatitude();
         lon = location.getLongitude();
 
+        debugText.setText(lat + " " + lon);
+
     }
+    */
 
     //from this part on its about http and networks
     //creates a string that is correspondent to a json object
