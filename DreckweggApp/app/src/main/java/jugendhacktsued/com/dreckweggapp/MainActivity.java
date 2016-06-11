@@ -142,54 +142,10 @@ public class MainActivity extends AppCompatActivity {
 
         //create and send json
         String json = createJson(lat, lon, 1);
-        postJSON(json);
+        new PostingJSON().execute(json);
 
     }
 
-    //for getting the location
-    //from https://developer.android.com/guide/topics/location/strategies.html
-    /* the following code drains the batteries
-    public void getLocation() {
-        //using https://developer.android.com/guide/topics/location/strategies.html
-        LocationManager locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
-
-        // Define a listener that responds to location updates
-        LocationListener locationListener = new LocationListener() {
-            public void onLocationChanged(Location location) {
-                // Called when a new location is found by the network location provider.
-                Log.i("coordinates", location.getLatitude() + " " + location.getLongitude());
-                locationWhole = location;
-                useCoordinates(location);
-            }
-
-            public void onStatusChanged(String provider, int status, Bundle extras) {
-                Log.d("location", "statuschanged");
-            }
-
-            public void onProviderEnabled(String provider) {
-                Log.d("location", "providerenabled");
-            }
-
-            public void onProviderDisabled(String provider) {
-                Log.d("location", "providerdisabled");
-            }
-        };
-
-        // Register the listener with the Location Manager to receive location updates
-        try
-        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, locationListener);
-    }
-
-    //uses location and puts coordinates
-    private void useCoordinates(Location location){
-        debugText.setText("Wuff1");
-        lat = location.getLatitude();
-        lon = location.getLongitude();
-
-        debugText.setText(lat + " " + lon);
-
-    }
-    */
 
     //from this part on its about http and networks
     //creates a string that is correspondent to a json object
@@ -242,11 +198,64 @@ public class MainActivity extends AppCompatActivity {
             //Handles input and output errors
             Log.d("Post", "ioerror" + error);
         }
+        catch(Exception error){
+            Log.d("Post", "some weird error: " + error);
+        }
 
         //close the connection again
         finally {
             if(client != null) // Make sure the connection is not null.
                 client.disconnect();
+        }
+    }
+
+    //this is the Async Task to do the posting of the json
+    class PostingJSON extends AsyncTask<String, Void, Void> {
+
+        private Exception exception;
+
+        protected Void doInBackground(String... strings) {
+            HttpURLConnection client = null;
+            try {
+                URL url = new URL(URLofServer); //need to insert ip address of server
+                client = (HttpURLConnection) url.openConnection();
+                client.setRequestMethod("POST");
+                client.setRequestProperty("Content-Type", "application/json; charset=utf-8");
+                client.setDoOutput(true);
+
+                //writes json to the stream
+                OutputStream outputPost = new BufferedOutputStream(client.getOutputStream());
+                byte[] jsonBytes = strings[0].getBytes("UTF-8");
+                outputPost.write(jsonBytes);
+                outputPost.flush(); //hopefully it will not stop before being finished
+                outputPost.close();
+
+                Log.d("Post", "posted json");
+
+            } catch (MalformedURLException error) {
+                //Handles an incorrectly entered URL
+                Log.d("Post", "incorrect URL" + error);
+            } catch (SocketTimeoutException error) {
+                //Handles URL access timeout.
+                Log.d("Post", "access timeout" + error);
+            } catch (IOException error) {
+                //Handles input and output errors
+                Log.d("Post", "ioerror" + error);
+            } catch (Exception error) {
+                Log.d("Post", "some weird error: " + error);
+            }
+
+            //close the connection again
+            finally {
+                if (client != null) // Make sure the connection is not null.
+                    client.disconnect();
+            }
+            return null;
+        }
+
+        protected Void onPostExecute() {
+            Log.d("Post", "After post");
+            return null;
         }
     }
 
